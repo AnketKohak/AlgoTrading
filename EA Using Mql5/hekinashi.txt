@@ -1,0 +1,145 @@
+//+------------------------------------------------------------------+
+//|                                                         test.mq5 |
+//|                                  Copyright 2024, MetaQuotes Ltd. |
+//|                                             https://www.mql5.com |
+//+------------------------------------------------------------------+
+#property copyright "Copyright 2024, MetaQuotes Ltd."
+#property link      "https://www.mql5.com"
+#property version   "1.00"
+#include <Trade/Trade.mqh>
+//+------------------------------------------------------------------+
+//| Expert initialization function                                   |
+//+------------------------------------------------------------------+
+int handleHeikenAshi;
+int maa;
+int barsTotal;
+CTrade trade;
+ulong posTicket;
+input double RiskPercent=0.5;
+input int SlPoints=200;
+double buYPRICESE;
+int OnInit()
+  {
+//---
+   barsTotal = iBars(_Symbol,PERIOD_CURRENT) ;
+   handleHeikenAshi = iCustom(_Symbol, PERIOD_CURRENT, "Examples//Heiken_Ashi.ex5");
+
+
+//---
+   return(INIT_SUCCEEDED);
+  }
+//+------------------------------------------------------------------+
+//| Expert deinitialization function                                 |
+//+------------------------------------------------------------------+
+void OnDeinit(const int reason)
+  {
+//---
+   Alert("ea has been ended");
+  }
+//+------------------------------------------------------------------+
+//| Expert tick function                                             |
+//+------------------------------------------------------------------+
+void OnTick()
+  {
+//  double ma=iMA(NULL,0,200,1,MODE_SMA,PRICE_CLOSE);
+   int bars = iBars(_Symbol,PERIOD_CURRENT);
+   MqlRates PriceInfo[];
+
+   ArraySetAsSeries(PriceInfo,true);
+   int Data =CopyRates(Symbol(),Period(),0,3,PriceInfo);
+   string singal="";
+   double myMovingAverageArray[];
+   int movingAverageDefination=iMA(_Symbol,_Period,20,0,MODE_SMA,PRICE_CLOSE);
+   ArraySetAsSeries(myMovingAverageArray,true);
+   CopyBuffer(movingAverageDefination,0,0,3,myMovingAverageArray);
+
+//---
+   if(barsTotal!=bars)
+     {
+      barsTotal=bars;
+      double haOpen[], haClose[],ma[];
+      CopyBuffer(handleHeikenAshi,0,1,1,haOpen);
+      CopyBuffer(handleHeikenAshi,3,1,1,haClose);
+      CopyBuffer(maa,0,1,1,ma);
+      if(haOpen[0]<haClose[0])
+        {
+         if(posTicket > 0)
+           {
+            if(PositionSelectByTicket(posTicket))
+              {
+               if(PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL)
+                 {
+
+
+                  if(trade. PositionClose(posTicket))
+                    {
+                     posTicket = 0;
+                    }
+                 }
+              }
+            else
+              {
+               posTicket=0;
+              }
+           }
+         if(posTicket<=0)
+           {
+            double entry = SymbolInfoDouble(_Symbol,SYMBOL_ASK);
+            entry = NormalizeDouble(entry,_Digits);
+            double sl = entry - SlPoints * _Point;
+            sl = NormalizeDouble(sl,_Digits);
+
+
+
+            if(trade.Buy(0.01,_Symbol,entry,sl))
+              {
+               buYPRICESE=SYMBOL_ASK;
+               posTicket=trade.ResultOrder();
+              }
+
+           }
+        }
+      else
+         if(haClose[0]<haOpen[0])
+           {
+
+            if(posTicket > 0)
+              {
+               if(PositionSelectByTicket(posTicket))
+                 {
+                  if(PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY)
+                    {
+                     if(trade. PositionClose(posTicket))
+                       {
+                        posTicket = 0;
+                       }
+                    }
+                 }
+               else
+                 {
+                  posTicket=0;
+                 }
+              }
+            if(posTicket<=0)
+              {
+               double entry = SymbolInfoDouble(_Symbol,SYMBOL_BID);
+               entry = NormalizeDouble(entry,_Digits);
+               double sl = entry + SlPoints * _Point;
+               sl = NormalizeDouble(sl,_Digits);
+
+               if(trade.Sell(0.01,_Symbol,entry,sl))
+                 {
+                  posTicket=trade.ResultOrder();
+                 }
+
+              }
+           }
+      Comment("\nHA Open: ",DoubleToString(haOpen[0],_Digits),
+              "\nHA Close: ",DoubleToString(haClose[0],_Digits),
+              "posTicket",posTicket);
+
+     }
+  }
+//+------------------------------------------------------------------+
+
+//+------------------------------------------------------------------+
